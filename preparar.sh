@@ -15,6 +15,9 @@ for item in daytona2.wasm nvram.js LICENSE NOTICE shaders/{compose,r3d}.wgsl lic
   mv "upstream/$item.tmp" "upstream/$item"
 done
 python3 -m pip install --disable-pip-version-check --target vendor 'wasmtime==50.0.1' 'wgpu==0.33.0' 'PySDL2==0.9.17'
+if ! PYTHONPATH=vendor python3 -c 'from PIL import Image, ImageDraw, ImageFont' 2>/dev/null; then
+  python3 -m pip install --disable-pip-version-check --target vendor 'Pillow>=10.1'
+fi
 tool=build/binaryen-version_133/bin/wasm-opt
 if [[ ! -x "$tool" ]]; then
   url=https://github.com/WebAssembly/binaryen/releases/download/version_133/binaryen-version_133-x86_64-linux.tar.gz

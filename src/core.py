@@ -4,10 +4,14 @@ import struct
 import time
 from pathlib import Path
 import wasmtime as wt
+import progress
 
 ROOT = Path(__file__).resolve().parents[1]
 
 class FieldLimitReached(Exception):
+    pass
+
+class GameClosed(Exception):
     pass
 
 class Game:
@@ -59,6 +63,10 @@ class Game:
         if not p:raise MemoryError(len(data))
         self.put(p,data)
         return p
+
+    def checkpoint(self):
+        if self.runfn("dayto_web_save_backup"):
+            self.last_save_frame = self.frames
 
     def start(self):
         self.runfn('__wasm_call_ctors')
@@ -117,8 +125,17 @@ class Game:
         if n in ('_localtime_js','_gmtime_js'):
             t=time.gmtime(a[0]);self.put(a[1],struct.pack('<9i',t.tm_sec,t.tm_min,t.tm_hour,t.tm_mday,t.tm_mon-1,t.tm_year-1900,(t.tm_wday+1)%7,t.tm_yday-1,0))
         if n=='__syscall_renameat':
-            try:self.path(a[1]).replace(self.path(a[3]));return 0
-            except OSError:return -44
+            source,dest=self.path(a[1]),self.path(a[3])
+            try:
+                if dest==self.fs/'save/backup.bin':
+                    progress.commit(dest, source.read_bytes())
+                    source.unlink()
+                else:
+                    source.replace(dest)
+                return 0
+            except (OSError, ValueError) as exc:
+                print("Could not commit cabinet file:", exc, flush=True)
+                return -29
         if n=='__syscall_unlinkat':
             try:self.path(a[1]).unlink();return 0
             except OSError:return -44
@@ -130,7 +147,7 @@ class Game:
             if self.panel:self.panel.present(self,a[0])
             if self.frames==1 or self.frames%300==0:print('Field',self.frames,flush=True)
             if self.limit and self.frames>=self.limit:raise FieldLimitReached
-        if n=='dayto_js_take_save_request' and self.panel and self.frames-self.last_save_frame>=900:
+        if n=='dayto_js_take_save_request' and self.panel and self.frames-self.last_save_frame>=300:
             self.last_save_frame=self.frames
             return 1
         if n=='dayto_js_must_wait':return bool(self.panel)

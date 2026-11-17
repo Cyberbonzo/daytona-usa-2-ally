@@ -11,3 +11,5 @@
 !src/play.py
 !src/compile_game.py
 !src/difficulty.py
+!src/progress.py
+!src/pause_screen.py

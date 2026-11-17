@@ -43,7 +43,7 @@ class Video:
         self.cg=d.create_bind_group(layout=self.compose.get_bind_group_layout(0),entries=[dict(binding=i,resource=v) for i,v in enumerate(resources)])
         self.vb=None;self.ub=None
 
-    def draw(self,game,packet):
+    def draw(self,game,packet,paused=False):
         raw=game.get(packet,39*4);u=struct.unpack('<39I',raw);f=struct.unpack('<39f',raw)
         d=self.d;q=d.queue
         if u[24]:
@@ -106,4 +106,10 @@ class Video:
         cu=[1,1,0,0,gx/vw,496/vw,bool(u[14]),bool(u[11]),u[13],0,0,0,*f[15:19],fx/vw,f[20]/384,(fx+fw)/vw,(f[20]+f[22])/384]
         q.write_buffer(self.cu,0,struct.pack('<20f',*cu))
         rp=enc.begin_render_pass(color_attachments=[dict(view=self.ctx.get_current_texture().create_view(),load_op='clear',store_op='store',clear_value=(0,0,0,1))])
-        rp.set_pipeline(self.compose);rp.set_bind_group(0,self.cg);rp.draw(3);rp.end();q.submit([enc.finish()]);self.ctx.present()
+        rp.set_pipeline(self.compose);rp.set_bind_group(0,self.cg);rp.draw(3)
+        if paused:
+            if not hasattr(self,'pause_screen'):
+                from pause_screen import PauseScreen
+                self.pause_screen=PauseScreen(d,self.format)
+            self.pause_screen.draw(rp)
+        rp.end();q.submit([enc.finish()]);self.ctx.present()
