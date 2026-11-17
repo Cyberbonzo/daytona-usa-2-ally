@@ -1,0 +1,13 @@
+*
+!.gitignore
+!src/
+!README.md
+!LICENSE
+!NOTICE
+!jogar.sh
+!preparar.sh
+!src/core.py
+!src/video.py
+!src/play.py
+!src/compile_game.py
+!src/difficulty.py
